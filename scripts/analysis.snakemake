@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+
+## snakemake workflow for analysis of pingtao data in datahog at
+## /tsl/data/reads/jjones/dingp_ath_atacseq_2019_1/
+
+import os
+from glob import glob
+
+configfile: "config.yaml"
+
+projectdir = config["projectdir"]
+datafolder = config["datafolder"]
+
+def get_samplenames(datafolder):
+    ## get the sample name from datahog path
+
+    samplenames = set()
+    for path in glob(datafolder + "/*/*/raw"):
+        sample = path.split("/")[-3]
+        if sample.startswith("setigh"):
+            continue
+        else:
+            samplenames.add(sample)
+
+
+    return samplenames
+
+
+samplenames = get_samplenames(datafolder)
+sample_data_fastq_files=[]
+
+samplefiles = dict()
+for current_sample in samplenames:
+
+    samplefiles[current_sample] = {}
+
+    dataset_name = glob_wildcards(datafolder + current_sample + "/{dataset}/raw").dataset
+    for dataset in dataset_name:
+        # print(sample, dataset)
+        samplefiles[current_sample][dataset] = {
+            "R1": glob(datafolder + current_sample + "/" + dataset + "/raw/*_R1.*"),
+            "R2": glob(datafolder + current_sample + "/" + dataset + "/raw/*_R2.*")
+            }
+        sample_data_fastq_files += glob(datafolder + current_sample + "/" + dataset + "/raw/*_R1.*")
+        sample_data_fastq_files += glob(datafolder  + current_sample + "/" + dataset + "/raw/*_R2.*")
+
+def get_samplename(fastq):
+    sample = fastq.split("/")[-4]
+    return sample
+def get_dataset_name(fastq):
+    dataset = fastq.split("/")[-3]
+    return dataset
+def get_data_name(fastq):
+    data = os.path.basename(fastq).split(".")[0]
+    return data
+def get_data_name_without_strand(fastq):
+    data = os.path.basename(fastq).split(".")[0].split("_")[0]
+    return data
+def get_sample_from_bam(bam):
+    sample = "_".join(os.path.basename(bam).split("_")[:3])
+    print(sample)
+    return sample
+def get_data_from_bam(bam):
+    data = os.path.basename(bam).split("_")[3]
+    print(data)
+    return data
+# print(samplefiles)
+# print(sample_data_fastq_files)
+
+rule fastqc:
+    input:
+        datafolder + "{sample}/{dataset}/raw/{data}.fastq.gz"
+    output:
+        projectdir + "results/fastqc/{sample}/{dataset}/{data}_fastqc.html"
+    # log: projectdir + "logs/fastqc/{sample}/fastqc.log"
+    shell: "fastqc --extract -f fastq -o " + projectdir + "results/fastqc/{wildcards.sample}/{wildcards.dataset} {input}"
+
+rule run_fastqc:
+    input: [projectdir + "results/fastqc/" + get_samplename(fastq) + "/" + get_dataset_name(fastq) + "/" + get_data_name(fastq) + "_fastqc.html"  for fastq in sample_data_fastq_files]
+
+
+
+rule picard_duplication:
+    input: "/tsl/scratch/shrestha/pingtao/dingp_Ath_ATACseq_2019_1/{sample}_{data}_sorted.bam"
+    output:
+        bam = projectdir + "results/picard_duplication/{sample}_{data}_marked_duplicates.bam",
+        txt = projectdir + "results/picard_duplication/{sample}_{data}_dupmetrics.txt"
+    # message: "Analysing duplication for sample file {wildcards.sample}"
+    # log: projectdir + "logs/{sample}/picard_duplication.log"
+    shell: "mkdir -p " + projectdir  + "results/picard_duplication" + " && picard MarkDuplicates I={input} O={output.bam} M={output.txt} REMOVE_SEQUENCING_DUPLICATES=false TAGGING_POLICY=OpticalOnly TAG_DUPLICATE_SET_MEMBERS=true "
+
+rule run_duplication:
+    input: [projectdir + "results/picard_duplication/" + get_samplename(fastq) + "_" +  get_data_name_without_strand(fastq) + "_marked_duplicates.bam" for fastq in sample_data_fastq_files]
