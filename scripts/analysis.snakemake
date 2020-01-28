@@ -78,7 +78,11 @@ rule fastqc:
 rule run_fastqc:
     input: [projectdir + "results/fastqc/" + get_samplename(fastq) + "/" + get_dataset_name(fastq) + "/" + get_data_name(fastq) + "_fastqc.html"  for fastq in sample_data_fastq_files]
 
+rule get_fastqc_report:
+    input: [projectdir + "results/fastqc/" + get_samplename(fastq) + "/" + get_dataset_name(fastq) + "/" + get_data_name(fastq) + "_fastqc.html"  for fastq in sample_data_fastq_files]
+    output: projectdir + "results/fastqc/report.txt"
 
+    shell: "bash scripts/get_fastqc_report.sh " + projectdir + "results/fastqc > {output}"
 
 rule picard_duplication:
     input: "/tsl/scratch/shrestha/pingtao/dingp_Ath_ATACseq_2019_1/{sample}_{data}_sorted.bam"
