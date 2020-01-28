@@ -9,6 +9,11 @@ This is a snakemake workflow for the analysis of ATACseq data for publication
 3) fastqc v0.11+
 4) picard v2.18.11
 
+## Analysis steps
+
+1) FASTQC 
+2) mark duplication of reads in bam files
+
 ## How to run 
 
 Run the command below in interactive mode
