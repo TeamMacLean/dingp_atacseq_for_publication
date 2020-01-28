@@ -89,5 +89,11 @@ rule picard_duplication:
     # log: projectdir + "logs/{sample}/picard_duplication.log"
     shell: "mkdir -p " + projectdir  + "results/picard_duplication" + " && picard MarkDuplicates I={input} O={output.bam} M={output.txt} REMOVE_SEQUENCING_DUPLICATES=false TAGGING_POLICY=OpticalOnly TAG_DUPLICATE_SET_MEMBERS=true "
 
-rule run_duplication:
+rule check_duplication:
     input: [projectdir + "results/picard_duplication/" + get_samplename(fastq) + "_" +  get_data_name_without_strand(fastq) + "_marked_duplicates.bam" for fastq in sample_data_fastq_files]
+
+rule get_duplication_table:
+    input: [projectdir + "results/picard_duplication/" + get_samplename(fastq) + "_" +  get_data_name_without_strand(fastq) + "_marked_duplicates.bam" for fastq in sample_data_fastq_files]
+
+    output: projectdir + "results/picard_duplication/duplication_percentage_table.txt"
+    shell: "bash scripts/get_duplication_table.sh " + projectdir + "results/picard_duplication > {output}"
