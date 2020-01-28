@@ -19,7 +19,7 @@ This is a snakemake workflow for the analysis of ATACseq data for publication
 Run the command below in interactive mode
 
 ```
-snakemake -s scripts/analysis.snakemake -p  --jobs 10 --cluster 'sbatch --cpus 1 --mem 12G' --latency-wait 60  run_fastqc run_duplication
+snakemake -s scripts/analysis.snakemake -p  --jobs 10 --cluster 'sbatch --cpus 1 --mem 12G' --latency-wait 60  run_fastqc run_duplication get_duplication_table
 ```
 
 The command can also be sbatched to the slurm cluster.
