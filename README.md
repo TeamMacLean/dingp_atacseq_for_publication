@@ -32,4 +32,10 @@ To run bowtie2 alignment, run
 snakemake -s scripts/run_bowtie2_analysis.smk -p run_bowtie2 --cluster 'sbatch --cpus 2 --mem 30g ' --latency-wait 60 --jobs 4  
 ```
 
+To run ATACcapseq data - dingp_ath_mutants_fansataccapseq_20170630_nextseq500_pe_midoutput
+
+```
+bash scripts/run_fastqc_bowtie2.sh
+```
+
 The command can also be sbatched to the slurm cluster.
