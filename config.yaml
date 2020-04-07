@@ -1,0 +1,26 @@
+sample:
+        10k-rep1:
+                R1: "/hpc-home/dingp/ATACseq_2019_trial_SH_PD/10k-rep1.R1.fastq.gz"
+                R2: "/hpc-home/dingp/ATACseq_2019_trial_SH_PD/10k-rep1.R2.fastq.gz"
+        10k-rep2:
+                R1: /hpc-home/dingp/ATACseq_2019_trial_SH_PD/10k-rep2.R1.fastq.gz
+                R2: /hpc-home/dingp/ATACseq_2019_trial_SH_PD/10k-rep2.R2.fastq.gz
+        20k-rep1:
+                R1: /hpc-home/dingp/ATACseq_2019_trial_SH_PD/20k-rep1.R1.fastq.gz
+                R2: /hpc-home/dingp/ATACseq_2019_trial_SH_PD/20k-rep1.R2.fastq.gz
+        20k-rep2:
+                R1: /hpc-home/dingp/ATACseq_2019_trial_SH_PD/20k-rep2.R1.fastq.gz
+                R2: /hpc-home/dingp/ATACseq_2019_trial_SH_PD/20k-rep2.R2.fastq.gz
+        50k-rep1:
+                R1: /hpc-home/dingp/ATACseq_2019_trial_SH_PD/50k-rep1.R1.fastq.gz
+                R2: /hpc-home/dingp/ATACseq_2019_trial_SH_PD/50k-rep1.R2.fastq.gz
+        # 50k-rep2:
+        #         R1: /hpc-home/dingp/ATACseq_2019_trial_SH_PD/50k-rep2.R1.fastq.gz
+        #         R2: /hpc-home/dingp/ATACseq_2019_trial_SH_PD/50k-rep2.R2.fastq.gz
+        80k-rep1:
+                R1: /hpc-home/dingp/ATACseq_2019_trial_SH_PD/80k-rep1.R1.fastq.gz
+                R2: /hpc-home/dingp/ATACseq_2019_trial_SH_PD/80k-rep1.R2.fastq.gz
+        80k-rep2:
+                R1: /hpc-home/dingp/ATACseq_2019_trial_SH_PD/80k-rep2.R1.fastq.gz
+                R2: /hpc-home/dingp/ATACseq_2019_trial_SH_PD/80k-rep2.R2.fastq.gz
+
