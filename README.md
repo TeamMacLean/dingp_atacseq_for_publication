@@ -39,3 +39,11 @@ bash scripts/run_fastqc_bowtie2.sh
 ```
 
 The command can also be sbatched to the slurm cluster.
+
+## Analysis tables
+
+The number of reads aligned to a chromosome is obtained using scripts/get_total_mapped_by_chromosome.sh. As the reads are paired end, the reads from R1 and R2 are considered together, therefore, we see twice the number reads.
+
+The percentage of reads aligned to a particular chromosome is obtained using scripts/get_percent_mapped_by_chromosome.sh. As the data is paired end, reads from both R1 and R2 are considered, so to get the right percentage, I have divided by 2.
+
+The fastqc report and picard duplication table were obtained using scripts/analysis.snakemake. See above section How to run.
