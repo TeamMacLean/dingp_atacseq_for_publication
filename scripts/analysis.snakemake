@@ -10,6 +10,7 @@ configfile: "config.yaml"
 
 projectdir = config["projectdir"]
 datafolder = config["datafolder"]
+reference = config["reference"]
 
 def get_samplenames(datafolder):
     ## get the sample name from datahog path
@@ -17,30 +18,32 @@ def get_samplenames(datafolder):
     samplenames = set()
     for path in glob(datafolder + "/*/*/raw"):
         sample = path.split("/")[-3]
-        if sample.startswith("setigh"):
-            continue
-        else:
-            samplenames.add(sample)
+        #if sample.startswith("wt"):
+        samplenames.add(sample)
 
 
     return samplenames
 
 
 samplenames = get_samplenames(datafolder)
-sample_data_fastq_files=[]
 
+print(samplenames)
+
+sample_data_fastq_files=[]
+sampleData = dict()
 samplefiles = dict()
 for current_sample in samplenames:
 
     samplefiles[current_sample] = {}
-
+    sampleData[current_sample] = []
     dataset_name = glob_wildcards(datafolder + current_sample + "/{dataset}/raw").dataset
     for dataset in dataset_name:
         # print(sample, dataset)
-        samplefiles[current_sample][dataset] = {
-            "R1": glob(datafolder + current_sample + "/" + dataset + "/raw/*_R1.*"),
-            "R2": glob(datafolder + current_sample + "/" + dataset + "/raw/*_R2.*")
-            }
+        sampleData[current_sample].append(dataset)
+        R1 = glob(datafolder + current_sample + "/" + dataset + "/raw/*_R1.*")
+        R2 = glob(datafolder + current_sample + "/" + dataset + "/raw/*_R2.*")
+        samplefiles[current_sample][dataset] = {"R1": R1, "R2": R2}
+        sampleData[current_sample].append([R1, R2])
         sample_data_fastq_files += glob(datafolder + current_sample + "/" + dataset + "/raw/*_R1.*")
         sample_data_fastq_files += glob(datafolder  + current_sample + "/" + dataset + "/raw/*_R2.*")
 
@@ -65,8 +68,8 @@ def get_data_from_bam(bam):
     print(data)
     return data
 # print(samplefiles)
-# print(sample_data_fastq_files)
-
+print(sample_data_fastq_files)
+print(sampleData)
 rule fastqc:
     input:
         datafolder + "{sample}/{dataset}/raw/{data}.fastq.gz"
@@ -83,6 +86,38 @@ rule get_fastqc_report:
     output: projectdir + "results/fastqc/report.txt"
 
     shell: "bash scripts/get_fastqc_report.sh " + projectdir + "results/fastqc > {output}"
+
+rule index_referece:
+    input: reference
+    output:
+        reference + ".1.bt2",
+        reference + ".2.bt2",
+        reference + ".3.bt2",
+        reference + ".4.bt2",
+        reference + ".rev.1.bt2",
+        reference + ".rev.2.bt2"
+    shell: "bowtie-build -f {input}"
+
+rule align_reads:
+    input:
+        R1 = lambda wildcards: samplefiles[wildcards.dataset][wildcards.dataset]['R1'],
+        R2 = lambda wildcards: samplefiles[wildcards.dataset][wildcards.dataset]['R2'],
+        index = [reference + ".1.bt2",
+        reference + ".2.bt2",
+        reference + ".3.bt2",
+        reference + ".4.bt2",
+        reference + ".rev.1.bt2",
+        reference + ".rev.2.bt2"]
+    output: projectdir + "results/alignment/{dataset}_sorted.bam"
+    threads: 16
+    resources: mem_mb = lambda wildcards, attempt: attempt * 300000
+    benchmark: projectdir + "benchmark/alignment/{dataset}.txt"
+    log: projectdir + "logs/alignment/{dataset}.log"
+    shell: "bowtie2 --threads {threads} -x {reference} --very-sensitive --end-to-end --maxins 20000 --no-discordant --no-mixed --fr --time --no-unal --qc-filter -1 {input.R1} -2 {input.R2} | samtools view -b --reference {reference} --threads {threads} | samtools sort -o {output} && samtools index {output}"
+
+rule run_alignment:
+    input:
+        [ projectdir + "results/alignment/" + data[0] + "_sorted.bam" for data in sampleData.values()]
 
 rule picard_duplication:
     input: "/tsl/scratch/shrestha/pingtao/dingp_Ath_ATACseq_2019_1/{sample}_{data}_sorted.bam"
@@ -101,3 +136,34 @@ rule get_duplication_table:
 
     output: projectdir + "results/picard_duplication/duplication_percentage_table.txt"
     shell: "bash scripts/get_duplication_table.sh " + projectdir + "results/picard_duplication > {output}"
+
+
+rule sard1_extreads:
+    input: "/tsl/data/extReads/{srr}.fastq.gz"
+    output: projectdir + "results/alignment/{srr}_sorted.bam"
+    threads: 16
+    resources: mem_mb = lambda wildcards, attempt: attempt * 300000
+    benchmark: projectdir + "benchmark/alignment/{srr}.txt"
+    log: projectdir + "logs/alignment/{srr}.log"
+    shell: "bowtie2 --threads {threads} -x {reference} --sensitive --end-to-end --maxins 20000 --time --no-unal --qc-filter -U {input}  | samtools view -b --reference {reference} --threads {threads} | samtools sort -o {output} && samtools index {output}"
+
+rule sard1_chipseq:
+    input:
+        treatment = projectdir + "results/alignment/SRR2776874_sorted.bam",
+        control = projectdir + "results/alignment/SRR2776875_sorted.bam"
+    output:
+        outfiles = [projectdir + "results/chipseq/sard1_control_lambda.bdg",
+            projectdir + "results/chipseq/sard1_cutoff_analysis.txt",
+            projectdir + "results/chipseq/sard1_model.r",
+            projectdir + "results/chipseq/sard1_peaks.narrowPeak",
+            projectdir + "results/chipseq/sard1_peaks.xls",
+            projectdir + "results/chipseq/sard1_summits.bed",
+            projectdir + "results/chipseq/sard1_treat_pileup.bdg"]
+
+    message: "Chipseq analysis"
+    benchmark: projectdir + "benchmark/chipseq/sard1_chipseq.log"
+    log: projectdir + "logs/chipseq/sard1_chipseq.log"
+    shell: "macs2 callpeak -t {input.treatment} -c {input.control} -f BAM -g 135000000 --keep-dup all --outdir {projectdir}/results/chipseq --name sard1 --bdg --verbose 2 --trackline --d-min 30 --call-summits --fe-cutoff 5 --cutoff-analysis --tsize 42 --pvalue 0.01 --min-length 10 --max-gap 10 --format BAM --scale-to large > {log} "
+
+rule run_sard1_extreads:
+    input: expand([projectdir + "results/alignment/{srr}_sorted.bam"], srr=["SRR2776874", "SRR2776875"])
